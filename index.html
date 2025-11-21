@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Space Miner - V10</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* --- TEMA: SPACE CYBERPUNK --- */
+        :root {
+            --bg-dark: #050b14;
+            --primary: #0066ff;
+            --secondary: #00d9ff;
+            --text-gray: #b0c4de;
+            --white: #ffffff;
+            --success: #00c853;
+            --danger: #ff4444;
+            --gold: #ffcc00;
+            --glass: rgba(18, 26, 41, 0.95);
+        }
+
+        * { box-sizing: border-box; outline: none; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            background-image: url('https://images.unsplash.com/photo-1614730341194-75c6074065db?q=80&w=1920&auto=format&fit=crop');
+            background-size: cover; background-position: center; background-attachment: fixed;
+            background-color: var(--bg-dark); color: var(--white);
+            font-family: 'Poppins', sans-serif; margin: 0; padding: 0;
+            padding-bottom: 0; /* Ajustado via JS quando logado */
+            overflow-x: hidden;
+        }
+        body::before { content: ""; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(5, 11, 20, 0.85); z-index: -1; }
+
+        /* LOGIN BG */
+        #screen-login, #screen-register {
+            background-image: url('https://images.unsplash.com/photo-1462331940025-496dfbfc7564?q=80&w=1920&auto=format&fit=crop');
+            background-size: cover; background-position: center; position: relative; z-index: 1;
+        }
+        #screen-login::after, #screen-register::after {
+            content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); z-index: -1;
+        }
+
+        /* UTILITÁRIOS */
+        .hidden { display: none !important; }
+        .text-center { text-align: center; }
+        .neon-text { text-shadow: 0 0 15px var(--primary); }
+        
+        .neon-box {
+            background: var(--glass); border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px; padding: 20px; margin-bottom: 15px;
+            backdrop-filter: blur(10px); box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+
+        /* HEADER */
+        .app-header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 15px 20px; background: rgba(5, 11, 20, 0.95);
+            position: sticky; top: 0; z-index: 100; border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .brand { font-size: 18px; font-weight: 700; letter-spacing: 1px; }
+        .brand span { color: var(--primary); }
+        
+        .hud-balance {
+            background: rgba(0, 102, 255, 0.2); padding: 5px 15px;
+            border-radius: 20px; border: 1px solid var(--primary);
+            font-weight: bold; display: flex; align-items: center; gap: 5px;
+        }
+
+        /* STATS */
+        .stats-scroll { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 20px; margin-bottom: 20px; }
+        .stat-card {
+            background: var(--glass); padding: 15px; border-radius: 12px;
+            text-align: center; border: 1px solid rgba(255,255,255,0.05);
+        }
+        .stat-value { font-size: 16px; font-weight: 700; display: block; }
+        .stat-label { font-size: 10px; color: var(--text-gray); text-transform: uppercase; }
+
+        /* BOTÕES E INPUTS */
+        .btn-primary {
+            background: linear-gradient(135deg, #0066ff, #0033cc); color: white; border: none;
+            padding: 14px; width: 100%; border-radius: 12px; font-weight: 600;
+            box-shadow: 0 4px 15px rgba(0,102,255,0.3); cursor: pointer; margin-top: 10px;
+        }
+        .btn-outline {
+            background: transparent; border: 1px solid rgba(255,255,255,0.2); color: #ccc;
+            padding: 12px; width: 100%; border-radius: 12px; margin-top: 10px; cursor: pointer;
+        }
+        .btn-green { background: linear-gradient(135deg, #00c853, #009624); box-shadow: 0 4px 15px rgba(0,200,83,0.3); color: white; border: none; padding: 12px; width: 100%; border-radius: 12px; font-weight: 600; margin-top: 10px; }
+        .btn-locked { background: #333; color: #777; border: 1px solid #444; cursor: not-allowed; width: 100%; padding: 12px; border-radius: 12px; margin-top: 10px; }
+
+        input {
+            width: 100%; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2);
+            padding: 14px; border-radius: 10px; color: white; font-size: 14px; margin-bottom: 10px;
+        }
+        input:focus { border-color: var(--primary); }
+
+        /* MENU GRID DO DASHBOARD */
+        .menu-grid {
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 0 10px; margin-bottom: 30px;
+        }
+        .menu-item {
+            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 10px; padding: 15px 5px; text-align: center; cursor: pointer; transition: 0.2s;
+        }
+        .menu-item:active { transform: scale(0.95); background: rgba(255,255,255,0.1); }
+        .menu-icon { font-size: 24px; display: block; margin-bottom: 5px; }
+        .menu-label { font-size: 10px; color: #ccc; text-transform: uppercase; }
+
+        /* MENU INFERIOR (ESCONDIDO POR PADRÃO) */
+        .bottom-nav {
+            position: fixed; bottom: 0; left: 0; width: 100%;
+            background: #0a0f1c; border-top: 1px solid rgba(255,255,255,0.1);
+            display: none; /* Começa invisível */
+            overflow-x: auto; padding: 10px 0; z-index: 100;
+            scrollbar-width: none; 
+        }
+        .bottom-nav::-webkit-scrollbar { display: none; }
+        .nav-item { flex: 0 0 75px; text-align: center; color: #64748b; cursor: pointer; }
+        .nav-item.active { color: var(--primary); }
+        .nav-icon { font-size: 20px; display: block; margin-bottom: 4px; }
+        .nav-label { font-size: 10px; font-weight: 500; }
+
+        /* ITEMS */
+        .plan-item {
+            display: flex; align-items: center; background: rgba(255,255,255,0.03);
+            padding: 15px; border-radius: 12px; margin-bottom: 10px; border: 1px solid rgba(255,255,255,0.05);
+        }
+        .plan-icon {
+            width: 50px; height: 50px; background: rgba(0,102,255,0.1); border: 1px solid var(--primary);
+            border-radius: 10px; display: flex; align-items: center; justify-content: center;
+            font-size: 24px; margin-right: 15px;
+        }
+
+        /* MODALS */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 2000; display: none; align-items: center; justify-content: center; }
+        .modal-content { background: #161f2e; padding: 25px; border-radius: 16px; width: 85%; max-width: 350px; text-align: center; border: 1px solid rgba(255,255,255,0.1); }
+
+        /* MENU LATERAL */
+        .side-menu {
+            position: fixed; top: 0; right: -280px; width: 260px; height: 100%;
+            background: #0a0f1c; border-left: 1px solid rgba(255,255,255,0.1);
+            z-index: 1500; transition: 0.3s; padding-top: 60px; display: flex; flex-direction: column;
+        }
+        .side-menu.open { right: 0; }
+        .menu-link { padding: 15px 20px; border-bottom: 1px solid rgba(255,255,255,0.05); color: #ccc; cursor: pointer; display: flex; gap: 10px; align-items: center; }
+        .menu-backdrop { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1499; display: none; }
+        
+        .menu-btn { font-size: 24px; cursor: pointer; color: var(--white); }
+
+        .screen { display: none; animation: fade 0.4s; }
+        .screen.active { display: block; }
+        @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+        
+        /* TOAST */
+        #toast-container { position: fixed; top: 80px; left: 50%; transform: translateX(-50%); z-index: 3000; width: 90%; max-width: 400px; }
+        .toast { background: #1e293b; color: white; padding: 12px 20px; border-radius: 50px; margin-bottom: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.5); display: flex; align-items: center; font-size: 13px; border: 1px solid #334155; }
+        .toast.success { border-color: var(--success); color: var(--success); }
+        .toast.error { border-color: var(--danger); color: var(--danger); }
+
+        .avatar-circle { width: 80px; height: 80px; background: #333; border-radius: 50%; border: 2px solid var(--primary); margin: 0 auto 10px; background-size: cover; background-position: center; display: flex; align-items: center; justify-content: center; font-size: 30px; }
+        
+        .back-bar { padding: 10px; background: rgba(0,0,0,0.8); position: sticky; top: 0; z-index: 99; }
+        .btn-back { width: auto; padding: 5px 15px; background: transparent; border: 1px solid #fff; margin: 0; font-size: 12px; }
+        .container-pad { padding: 15px; }
+        
+        /* EXTRAS */
+        .checkin-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+        .day-card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 10px 2px; text-align: center; opacity: 0.6; font-size: 12px; }
+        .day-card.active { border-color: var(--gold); opacity: 1; background: rgba(255, 204, 0, 0.1); transform: scale(1.05); }
+        .day-card.claimed { border-color: var(--success); opacity: 0.5; background: rgba(0, 200, 83, 0.1); }
+
+        .hist-item { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .hist-val.in { color: var(--success); }
+        .hist-val.out { color: var(--danger); }
+    </style>
+</head>
+<body>
+
+    <div id="toast-container"></div>
+
+    <div class="menu-backdrop" id="menu-back" onclick="app.toggleMenu()"></div>
+    <div class="side-menu" id="side-menu">
+        <div style="padding: 20px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1);">
+            <h3 style="margin:0; color:var(--primary);">MENU</h3>
+        </div>
+        <div class="menu-link" onclick="app.nav('profile')">👤 Meu Perfil</div>
+        <div class="menu-link" onclick="app.nav('history')">📜 Histórico</div>
+        <div class="menu-link" onclick="app.nav('shop')">💎 Comprar Cristais</div>
+        <div class="menu-link" onclick="app.nav('market')">💰 Sacar</div>
+        <div class="menu-link" onclick="window.open('https://t.me/+WLkIKf8rNTU3ZWJh')">💬 Suporte</div>
+        <div class="menu-link" onclick="app.logout()" style="color: var(--danger);">🚪 Sair</div>
+    </div>
+
+    <div id="screen-login" class="screen active" style="height: 100vh; display: flex; flex-direction: column; justify-content: center; padding: 30px;">
+        <div class="text-center">
+            <div style="font-size: 60px; margin-bottom: 10px;">🪐</div>
+            <h1 class="neon-text" style="margin: 0; font-size: 32px; color: var(--primary);">SPACE MINER</h1>
+            <p style="color: #aaa; letter-spacing: 3px;">LOGIN</p>
+        </div>
+        <div class="neon-box" style="margin-top: 30px;">
+            <input type="tel" id="login-phone" placeholder="Telefone">
+            <input type="password" id="login-pass" placeholder="Senha">
+            <button class="btn-primary" id="btn-login" onclick="app.doLogin()">ENTRAR</button>
+            <button class="btn-outline" onclick="app.nav('register')">CRIAR CONTA</button>
+        </div>
+    </div>
+
+    <div id="screen-register" class="screen" style="padding: 30px; padding-top: 50px;">
+        <h2 class="text-center">Nova Conta</h2>
+        <div class="neon-box">
+            <input type="text" id="reg-name" placeholder="Nome">
+            <input type="tel" id="reg-phone" placeholder="Telefone">
+            <input type="password" id="reg-pass" placeholder="Senha">
+            <input type="password" id="reg-conf" placeholder="Confirmar Senha">
+            <input type="text" id="reg-ref" placeholder="Quem indicou? (Opcional)">
+            <button class="btn-primary" id="btn-register" onclick="app.doRegister()">CADASTRAR</button>
+            <button class="btn-outline" onclick="app.nav('login')">VOLTAR</button>
+        </div>
+    </div>
+
+    <div id="screen-dashboard" class="screen">
+        <div class="app-header">
+            <div class="brand">SPACE <span>MINER</span></div>
+            <div style="display: flex; gap: 15px; align-items: center;">
+                <div class="hud-balance">💎 <span id="hud-bal">0</span></div>
+                <div class="menu-btn" onclick="app.toggleMenu()">⋮</div>
+            </div>
+        </div>
+
+        <div style="height: 180px; background: url('1000627889.jpg') center/cover no-repeat; position: relative; margin-bottom: 20px;">
+            <div style="position:absolute; bottom:0; left:0; width:100%; height:50%; background: linear-gradient(to top, var(--bg-dark), transparent);"></div>
+        </div>
+
+        <div style="padding: 0 20px;">
+            <div class="stats-scroll">
+                <div class="stat-card">
+                    <span class="stat-value" style="color:var(--primary);" id="dash-bal">0</span>
+                    <span class="stat-label">Saldo Atual</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-value" style="color:var(--success);" id="dash-prod">0/dia</span>
+                    <span class="stat-label">Rendimento</span>
+                </div>
+            </div>
+
+            <div class="menu-grid">
+                <div class="menu-item" onclick="app.nav('investments')"><span class="menu-icon">🌌</span><span class="menu-label">Frota</span></div>
+                <div class="menu-item" onclick="app.nav('daily')"><span class="menu-icon">📅</span><span class="menu-label">Diário</span></div>
+                <div class="menu-item" onclick="app.nav('shop')"><span class="menu-icon">💎</span><span class="menu-label">Loja</span></div>
+                <div class="menu-item" onclick="app.nav('network')"><span class="menu-icon" style="color:var(--gold);">👥</span><span class="menu-label">Rede</span></div>
+                <div class="menu-item" onclick="app.nav('market')"><span class="menu-icon">💰</span><span class="menu-label">Saque</span></div>
+                <div class="menu-item" onclick="app.nav('profile')"><span class="menu-icon">👤</span><span class="menu-label">Perfil</span></div>
+            </div>
+
+            <h3 style="border-left: 3px solid var(--secondary); padding-left: 10px; color: var(--white);">HANGAR (COMPRAR)</h3>
+            <div id="list-hangar"></div>
+        </div>
+    </div>
+
+    <div id="screen-investments" class="screen" style="padding-bottom:100px;">
+        <div class="back-bar"><button class="btn-back" onclick="app.nav('dashboard')">⬅ VOLTAR</button></div>
+        <h2 class="text-center" style="color: var(--success);">MINHA FROTA</h2>
+        <div id="list-investments" class="container-pad"></div>
+    </div>
+
+    <div id="screen-daily" class="screen" style="padding-bottom:100px;">
+        <div class="back-bar"><button class="btn-back" onclick="app.nav('dashboard')">⬅ VOLTAR</button></div>
+        <h2 class="text-center" style="color: var(--secondary);">DIÁRIO</h2>
+        <div class="container-pad">
+            <div class="neon-box">
+                <div class="checkin-grid" id="checkin-grid"></div>
+                <button class="btn-green" onclick="app.doCheckin()" style="margin-top:20px;">COLETAR HOJE</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="screen-shop" class="screen" style="padding-bottom:100px;">
+        <div class="back-bar"><button class="btn-back" onclick="app.nav('dashboard')">⬅ VOLTAR</button></div>
+        <h2 class="text-center" style="color: var(--secondary);">LOJA</h2>
+        <div class="container-pad">
+            <div class="neon-box" style="border-color: var(--success);">
+                <h3 style="margin-top: 0; color: var(--success);">🎫 Resgatar</h3>
+                <div style="display:flex; gap:10px;">
+                    <input type="text" id="redeem-input" placeholder="Inserir código">
+                    <button class="btn-green" style="width:auto; margin:0; padding:10px;" onclick="app.redeemCode()">OK</button>
+                </div>
+            </div>
+            <div id="list-shop"></div>
+        </div>
+    </div>
+
+    <div id="screen-network" class="screen" style="padding-bottom:100px;">
+        <div class="back-bar"><button class="btn-back" onclick="app.nav('dashboard')">⬅ VOLTAR</button></div>
+        <h2 class="text-center" style="color: var(--gold);">REDE</h2>
+        <div class="container-pad">
+            <div class="neon-box text-center" style="border: 1px solid var(--gold);">
+                <label style="color:var(--gold); font-size:10px;">LINK DE CONVITE</label>
+                <div style="display:flex; gap:5px; margin-top:5px; margin-bottom:10px;">
+                    <input type="text" id="share-link-input" readonly style="font-size:10px; color:#ccc; background:#222; border:none;">
+                    <button class="btn-gold" style="width:auto; padding:10px; margin:0;" onclick="app.copyOnlyLink()">COPY</button>
+                </div>
+                <label style="color:var(--gold); font-size:10px;">CÓDIGO</label>
+                <h1 style="color:#fff; margin:5px 0; letter-spacing:2px;" id="my-referral-code">...</h1>
+            </div>
+            <div class="neon-box text-center" style="display:flex; justify-content:space-between;">
+                <div><p style="font-size: 10px; color: #aaa;">AMIGOS</p><h2 style="color:#fff; margin:0;" id="network-count">0</h2></div>
+                <div style="border-left:1px solid #333; padding-left:15px;"><p style="font-size: 10px; color: #aaa;">GANHOS</p><h2 style="color:var(--gold); margin:0;" id="network-balance">0</h2></div>
+            </div>
+            <div class="neon-box">
+                <h3 style="margin-top:0; font-size:16px; color:var(--gold);">💰 Comissão (15%)</h3>
+                <div style="display:flex; gap:5px;">
+                    <input type="text" id="comm-input" placeholder="Código Comissão">
+                    <button class="btn-gold" style="width:auto; margin:0; padding:10px;" onclick="app.redeemCommission()">OK</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="screen-market" class="screen" style="padding-bottom:100px;">
+        <div class="back-bar"><button class="btn-back" onclick="app.nav('dashboard')">⬅ VOLTAR</button></div>
+        <h2 class="text-center" style="color: var(--primary);">SAQUE</h2>
+        <div class="container-pad">
+            <div class="neon-box text-center">
+                <h1 style="font-size: 40px; margin: 10px 0; color: var(--primary);">📦 <span id="market-bal">0</span></h1>
+                <p style="font-size:12px;">1000 Cristais = R$ 1,00</p>
+            </div>
+            <div class="neon-box">
+                <input type="text" id="pix-key" placeholder="Chave Pix">
+                <input type="number" id="withdraw-amount" placeholder="Qtd Cristais (Min: 10.000)" oninput="app.calcFee()">
+                <div id="fee-calc" class="hidden" style="background:#000; padding:10px; border-radius:8px; margin-top:10px; font-size:12px; color:#ccc;">
+                    <div style="display:flex; justify-content:space-between;"><span>Bruto:</span><span id="calc-gross">R$ 0,00</span></div>
+                    <div style="display:flex; justify-content:space-between; color:var(--danger);"><span>Taxa (15%):</span><span id="calc-fee">- R$ 0,00</span></div>
+                    <div style="display:flex; justify-content:space-between; font-weight:bold; color:var(--success); border-top:1px solid #333; margin-top:5px; padding-top:5px;"><span>Líquido:</span><span id="calc-net">R$ 0,00</span></div>
+                </div>
+                <button class="btn-primary" id="btn-withdraw" onclick="app.withdraw()">SOLICITAR</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="screen-profile" class="screen" style="padding-bottom:100px;">
+        <div class="back-bar"><button class="btn-back" onclick="app.nav('dashboard')">⬅ VOLTAR</button></div>
+        <h2 class="text-center">PERFIL</h2>
+        <div class="container-pad">
+            <div class="text-center" style="margin-bottom: 20px;">
+                <div class="avatar-circle" id="prof-avatar" onclick="document.getElementById('file-in').click()">📷</div>
+                <input type="file" id="file-in" hidden accept="image/*" onchange="app.changeAvatar(this)">
+                <h2 id="prof-name" style="margin:5px 0;">Comandante</h2>
+                <p style="color:#aaa; font-size:12px;">ID: <span id="prof-id">...</span></p>
+            </div>
+            <div class="neon-box">
+                <button class="btn-telegram" onclick="window.open('https://t.me/+WLkIKf8rNTU3ZWJh')">TELEGRAM</button>
+                <button class="btn-outline" onclick="app.promptPass()">ALTERAR SENHA</button>
+                <button class="btn-outline" style="border-color:var(--danger); color:var(--danger);" onclick="app.logout()">SAIR</button>
+            </div>
+            <p style="font-size:10px; opacity:0.3; margin-top:30px; text-align:center;" onclick="app.secretAdmin()">Admin V10</p>
+        </div>
+    </div>
+
+    <div id="screen-history" class="screen" style="padding-bottom:100px;">
+        <div class="back-bar"><button class="btn-back" onclick="app.nav('dashboard')">⬅ VOLTAR</button></div>
+        <h2 class="text-center">EXTRATO</h2>
+        <div id="hist-list" class="container-pad"></div>
+    </div>
+
+    <div class="bottom-nav" id="bottom-nav" style="display:none;">
+        <div class="nav-item active" onclick="app.nav('dashboard', this)"><span class="nav-icon">🏠</span><span class="nav-label">Home</span></div>
+        <div class="nav-item" onclick="app.nav('investments', this)"><span class="nav-icon">🚀</span><span class="nav-label">Frota</span></div>
+        <div class="nav-item" onclick="app.nav('daily', this)"><span class="nav-icon">📅</span><span class="nav-label">Diário</span></div>
+        <div class="nav-item" onclick="app.nav('shop', this)"><span class="nav-icon">💎</span><span class="nav-label">Loja</span></div>
+        <div class="nav-item" onclick="app.nav('network', this)"><span class="nav-icon">👥</span><span class="nav-label">Rede</span></div>
+        <div class="nav-item" onclick="app.nav('market', this)"><span class="nav-icon">💰</span><span class="nav-label">Saque</span></div>
+        <div class="nav-item" onclick="app.nav('profile', this)"><span class="nav-icon">👤</span><span class="nav-label">Perfil</span></div>
+    </div>
+
+    <div id="modal-pix" class="modal-overlay">
+        <div class="modal-content">
+            <h3>Pagamento Pix</h3>
+            <textarea id="pix-code" readonly style="width:100%; height:80px; background:#222; color:#fff; border:1px solid #444; margin:10px 0;"></textarea>
+            <button class="btn-green" onclick="app.copyPix()">COPIAR</button>
+            <button class="btn-outline" onclick="document.getElementById('modal-pix').style.display='none'">FECHAR</button>
+        </div>
+    </div>
+
+    <script>
+        // CONFIG
+        const CLOUD = { BIN: "691fb198ae596e708f6640fe", KEY: "$2a$10$2mH99fVyX6u9ros4a1UV7eNDXameZOfDk92Qt1u06p2mNQej7vGP2" };
+        const app = {
+            user: null, data: { name:"", phone:"", balance:0, ore:0, invite_code:"", invite_count:0, net_earn:0, photo:null, checkin:{last:0,streak:0}, ships:[], usedCodes:[], history:[] },
+            config: {
+                fee: 0.15,
+                codes: { "CRISTAL20":20000, "VIP20":20000, "INICIO":5000, "VIP10":10000, "CRISTAL50":50000, "CRISTAL100":110000, "CRISTAL500":550000 },
+                comm: { "COMISSAO3":3000, "COMISSAO7":7500, "COMISSAO15":15000 },
+                ships: [
+                    { name:"Sonda Alpha", cost:20000, yield:1800 },
+                    { name:"Miner MK-II", cost:50000, yield:4500 },
+                    { name:"Estrela da Morte", cost:100000, yield:9000 },
+                    { name:"Titã Galáctico", cost:500000, yield:45000 }
+                ],
+                packs: [
+                    { p:20, g:20000, x:"00020126580014br.gov.bcb.pix0136e0307f71-e74f-4244-bdfc-a2b1dd3cf613520400005303986540520.005802BR5920Dilson Ferreira Lima" },
+                    { p:50, g:50000, x:"00020126580014br.gov.bcb.pix0136940a7c2b-ebf7-4c59-941c-5bb27cd655bf520400005303986540550.005802BR5920Dilson Ferreira Lima" },
+                    { p:100, g:110000, x:"00020126580014br.gov.bcb.pix0136e0307f71-e74f-4244-bdfc-a2b1dd3cf6135204000053039865406100.005802BR5920Dilson Ferreira Lima" },
+                    { p:500, g:550000, x:"00020126580014br.gov.bcb.pix0136e0307f71-e74f-4244-bdfc-a2b1dd3cf6135204000053039865406500.005802BR5920Dilson Ferreira Lima" }
+                ]
+            },
+            init: function() {
+                const p = new URLSearchParams(window.location.search).get('ref');
+                if(p && document.getElementById('reg-ref')) document.getElementById('reg-ref').value = p;
+                this.renderShop(); this.renderHangar();
+                setInterval(() => { if(document.getElementById('screen-investments').classList.contains('active')) this.renderFleet(); }, 1000);
+            },
+            api: async function(m, d) {
+                try {
+                    const ops = { method: m, headers: { 'X-Master-Key': CLOUD.KEY, 'Content-Type': 'application/json' } };
+                    if(d) ops.body = JSON.stringify(d);
+                    const r = await fetch(`https://api.jsonbin.io/v3/b/${CLOUD.BIN}/${m==='GET'?'latest':''}`, ops);
+                    if(!r.ok) throw new Error('x');
+                    return (await r.json()).record;
+                } catch(e) { 
+                    this.toast("Offline", "error"); 
+                    return { users: JSON.parse(localStorage.getItem('space_db')) || {}, withdrawals: [] }; 
+                }
+            },
+            sync: async function() {
+                if(!this.user) return;
+                localStorage.setItem('space_data_'+this.user, JSON.stringify(this.data));
+                const c = await this.api('GET');
+                if(c.users) { c.users[this.user] = this.data; await this.api('PUT', c); }
+            },
+            genCode: () => "CMD-" + Math.random().toString(36).substr(2, 4).toUpperCase(),
+            reg: async function() {
+                const n=get('reg-name'), p=get('reg-phone'), pw=get('reg-pass'), pc=get('reg-conf'), r=get('reg-ref');
+                if(n.length<3 || p.length<8 || pw.length<4) return this.toast("Dados inválidos", "error");
+                if(pw!==pc) return this.toast("Senhas diferem", "error");
+                
+                const btn = document.getElementById('btn-register'); btn.disabled=true; btn.innerText="...";
+                const c = await this.api('GET');
+                if(!c.users) c.users={};
+                if(c.users[p]) { this.toast("Telefone em uso", "error"); btn.disabled=false; return; }
+                
+                const u = { name:n, phone:p, pass:pw, balance:0, invite_code:this.genCode(), referred_by:r, invite_count:0, net_earn:0, photo:null, checkin:{last:0,streak:0}, ships:[], usedCodes:[], history:[] };
+                c.users[p] = u;
+                await this.api('PUT', c);
+                localStorage.setItem('space_data_'+p, JSON.stringify(u));
+                this.toast("Criado!", "success"); btn.innerText="CADASTRAR"; btn.disabled=false; this.nav('login');
+            },
+            login: async function() {
+                const p=get('login-phone'), pw=get('login-pass'), btn=document.getElementById('btn-login');
+                btn.disabled=true; btn.innerText="...";
+                const c = await this.api('GET');
+                if(c.users && c.users[p] && c.users[p].pass === pw) {
+                    this.user = p; this.data = c.users[p];
+                    if(this.data.gems || this.data.ore) {
+                        this.data.balance = (this.data.balance||0) + (this.data.gems||0) + (this.data.ore||0);
+                        this.data.gems=0; this.data.ore=0;
+                        this.sync();
+                    }
+                    localStorage.setItem('space_data_'+p, JSON.stringify(this.data));
+                    this.start();
+                } else { this.toast("Dados incorretos", "error"); }
+                btn.innerText="ENTRAR"; btn.disabled=false;
+            },
+            start: function() {
+                document.getElementById('screen-login').classList.remove('active');
+                // ATENÇÃO: Só aqui o menu inferior aparece
+                document.getElementById('bottom-nav').style.display = 'flex';
+                this.updateAll();
+                this.nav('dashboard', document.querySelector('.nav-item'));
+            },
+            nav: function(s, el) {
+                document.querySelectorAll('.screen').forEach(e => e.classList.remove('active'));
+                document.getElementById('screen-'+s).classList.add('active');
+                if(el) { document.querySelectorAll('.nav-item').forEach(i=>i.classList.remove('active')); el.classList.add('active'); }
+                
+                document.getElementById('side-menu').classList.remove('open');
+                document.getElementById('menu-back').style.display='none';
+                if(s==='fleet') this.renderFleet();
+                if(s==='daily') this.renderCheckin();
+                if(s==='history') this.renderHist();
+            },
+            toggleMenu: function() {
+                const m = document.getElementById('side-menu');
+                const b = document.getElementById('menu-back');
+                if(m.classList.contains('open')) { m.classList.remove('open'); b.style.display='none'; }
+                else { m.classList.add('open'); b.style.display='block'; }
+            },
+            buy: function(i) {
+                const s = this.config.ships[i];
+                if(this.data.balance < s.cost) return this.toast("Saldo insuficiente", "error");
+                this.data.balance -= s.cost;
+                this.data.ships.push({ name:s.name, yield:s.yield, last:Date.now() });
+                this.hist('Compra Nave', `-${s.cost}`, 'out');
+                this.sync(); this.updateAll(); this.toast("Sucesso!", "success");
+            },
+            collect: function(i) {
+                const s = this.data.ships[i], now = Date.now();
+                if(now - s.last < 86400000) return;
+                this.data.balance += s.yield; s.last = now;
+                this.hist('Coleta', `+${s.yield}`, 'in');
+                this.sync(); this.updateAll(); this.renderFleet(); this.toast("Coletado!", "success");
+            },
+            redeemCode: function() {
+                const c = get('redeem-input').trim().toUpperCase();
+                if(this.data.usedCodes.includes(c)) return this.toast("Já usado", "error");
+                if(this.config.codes[c]) {
+                    const v = this.config.codes[c]; this.data.balance+=v; this.data.usedCodes.push(c);
+                    this.hist('Código', `+${v}`, 'in'); this.sync(); this.updateAll(); this.toast("Resgatado!", "success");
+                } else this.toast("Inválido", "error");
+            },
+            redeemCommission: function() {
+                const c = get('comm-input').trim().toUpperCase();
+                if(this.data.usedCodes.includes("NET_"+c)) return this.toast("Já usado", "error");
+                if(this.config.comm[c]) {
+                    const v = this.config.comm[c]; this.data.balance+=v; this.data.net_earn+=v; this.data.invite_count++;
+                    this.data.usedCodes.push("NET_"+c); this.hist('Comissão', `+${v}`, 'in');
+                    this.sync(); this.updateAll(); this.toast("Sucesso!", "success");
+                } else this.toast("Inválido", "error");
+            },
+            checkin: function() {
+                const now = Date.now();
+                if(now - this.data.checkin.last < 86400000) return this.toast("Volte amanhã", "error");
+                this.data.balance += 800; this.data.checkin.last = now; this.data.checkin.streak++;
+                this.hist('Diário', '+800', 'in');
+                this.sync(); this.updateAll(); this.renderCheckin(); this.toast("+800 Cristais", "success");
+            },
+            withdraw: async function() {
+                const k = get('withdraw-key'), v = parseInt(get('withdraw-amount'));
+                if(v < 10000) return this.toast("Min 10.000", "error");
+                if(v > this.data.balance) return this.toast("Saldo insuficiente", "error");
+                const btn = document.getElementById('btn-withdraw'); btn.disabled=true; btn.innerText="...";
+                
+                const c = await this.api('GET');
+                if(!c.withdrawals) c.withdrawals = [];
+                const real = (v/1000); const fee = real * this.config.fee; const net = real - fee;
+                
+                this.data.balance -= v;
+                c.users[this.user] = this.data;
+                c.withdrawals.push({ id:Date.now(), user:this.data.name, pix:k, amount:v, net:net.toFixed(2), status:'Pendente', date:new Date().toLocaleString() });
+                
+                await this.api('PUT', c);
+                this.hist('Saque', `-${v}`, 'out');
+                this.save(); this.updateAll();
+                this.toast("Solicitado!", "success"); btn.innerText="SOLICITAR"; btn.disabled=false;
+            },
+            updateAll: function() {
+                const bal = this.data.balance.toLocaleString();
+                document.getElementById('hud-bal').innerText = bal;
+                document.getElementById('dash-bal').innerText = bal;
+                document.getElementById('wallet-balance').innerText = bal;
+                document.getElementById('market-bal').innerText = bal;
+                
+                let d=0; this.data.ships.forEach(s=>d+=s.yield);
+                document.getElementById('hud-prod').innerText = d.toLocaleString() + "/dia";
+                document.getElementById('dash-prod').innerText = d.toLocaleString() + "/dia";
+
+                document.getElementById('prof-name').innerText = this.data.name;
+                document.getElementById('prof-id').innerText = this.data.invite_code;
+                if(this.data.photo) {
+                    document.getElementById('prof-avatar').style.backgroundImage = `url(${this.data.photo})`;
+                    document.getElementById('prof-avatar').innerText = "";
+                }
+                document.getElementById('my-referral-code').innerText = this.data.invite_code;
+                document.getElementById('net-code').innerText = this.data.invite_code;
+                document.getElementById('net-count').innerText = this.data.invite_count;
+                document.getElementById('net-earn').innerText = this.data.net_earn;
+            },
+            renderHangar: function() {
+                let h=""; this.config.ships.forEach((s,i)=>{
+                    const r = (s.cost/1000).toFixed(0);
+                    h+=`<div class="plan-item"><div class="plan-icon">🚀</div><div style="flex:1"><div style="font-weight:bold">${s.name}</div><div style="font-size:12px;color:#aaa">Custo: <span style="color:var(--secondary)">${s.cost.toLocaleString()}</span> (R$ ${r})</div><div style="font-size:12px;color:#aaa">Renda: <span style="color:var(--success)">${s.yield}/dia</span></div></div><button class="btn-primary" style="width:auto;margin:0;padding:8px 15px" onclick="app.buy(${i})">COMPRAR</button></div>`;
+                });
+                document.getElementById('list-hangar').innerHTML = h;
+            },
+            renderFleet: function() {
+                let h=""; const now=Date.now();
+                if(this.data.ships.length===0) h='<p class="text-center" style="color:#666;margin-top:30px">Vazio</p>';
+                else this.data.ships.forEach((s,i)=>{
+                    const cd=86400000, diff=now-s.last;
+                    let btn = diff>=cd ? `<button class="btn-green" style="margin:0;padding:8px" onclick="app.collect(${i})">COLETAR</button>` : `<button class="btn-locked" style="margin:0;padding:8px">${Math.floor((cd-diff)/3600000)}h ${Math.floor(((cd-diff)%3600000)/60000)}m</button>`;
+                    h+=`<div class="plan-item" style="border-color:var(--success)"><div class="plan-icon" style="color:var(--success)">🛰️</div><div style="flex:1"><div style="font-weight:bold">${s.name}</div><div style="font-size:12px">Produção: ${s.yield}</div></div><div style="width:90px">${btn}</div></div>`;
+                });
+                document.getElementById('list-fleet').innerHTML = h;
+                document.getElementById('list-investments').innerHTML = h;
+            },
+            renderShop: function() {
+                let h=""; this.config.packs.forEach((p,i)=>{
+                    h+=`<div class="plan-item"><div style="flex:1"><div style="font-weight:bold;color:var(--secondary)">${p.g.toLocaleString()} Cristais</div><div style="font-size:12px">R$ ${p.p},00</div></div><button class="btn-primary" style="width:auto;margin:0;padding:8px" onclick="app.pay(${i})">COMPRAR</button></div>`;
+                });
+                document.getElementById('list-shop').innerHTML = h;
+            },
+            renderCheckin: function() {
+                let h=""; const s=this.data.checkin.streak%7;
+                for(let i=0; i<7; i++) {
+                    let c=i<s?"claimed":i===s?"active":"";
+                    let t=i<s?"✅":`Dia ${i+1}`;
+                    h+=`<div class="day-card ${c}"><div style="font-size:18px">📅</div><div style="font-size:10px">${t}</div><div style="font-size:9px;color:var(--gold)">+800</div></div>`;
+                }
+                document.getElementById('checkin-grid').innerHTML = h;
+            },
+            renderHist: function() {
+                let h=""; if(this.data.history.length===0) h='<p class="text-center" style="color:#666">Vazio</p>';
+                else this.data.history.forEach(x=>{ h+=`<div class="hist-item"><div style="font-size:12px"><div>${x.title}</div><div style="color:#777;font-size:10px">${x.date}</div></div><div class="hist-val ${x.type==='in'?'in':'out'}">${x.val}</div></div>`; });
+                document.getElementById('hist-list').innerHTML = h;
+            },
+            pay: function(i) { document.getElementById('pix-code').value = this.config.packs[i].x; document.getElementById('modal-pix').style.display='flex'; },
+            copyPix: function() { document.getElementById('pix-code').select(); navigator.clipboard.writeText(document.getElementById('pix-code').value); this.toast("Copiado!", "success"); },
+            copyOnlyLink: function() { const t = window.location.href.split('?')[0] + "?ref=" + this.data.invite_code; navigator.clipboard.writeText(t); this.toast("Copiado!", "success"); },
+            changeAvatar: function(input) {
+                if(input.files && input.files[0]) {
+                    const r = new FileReader();
+                    r.onload = (e) => { this.data.photo = e.target.result; this.updateAll(); this.sync(); };
+                    r.readAsDataURL(input.files[0]);
+                }
+            },
+            calcFee: function() {
+                const v=parseInt(get('withdraw-amount'))||0;
+                const c=document.getElementById('fee-calc');
+                if(v>0) { c.classList.remove('hidden'); const r=v/1000; const f=r*0.15; document.getElementById('calc-gross').innerText=`R$ ${r.toFixed(2)}`; document.getElementById('calc-fee').innerText=`- R$ ${f.toFixed(2)}`; document.getElementById('calc-net').innerText=`R$ ${(r-f).toFixed(2)}`; }
+                else c.classList.add('hidden');
+            },
+            hist: function(t,v,ty) {
+                const d = new Date(); const ds = `${d.getDate()}/${d.getMonth()+1} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
+                this.data.history.unshift({ title:t, val:v, type:ty, date:ds });
+                if(this.data.history.length>50) this.data.history.pop();
+            },
+            toast: function(m, t) {
+                const d=document.createElement('div'); d.className=`toast ${t}`; d.innerText=m;
+                document.getElementById('toast-container').appendChild(d);
+                setTimeout(()=>{ d.remove(); }, 3000);
+            },
+            logout: function() { location.reload(); },
+            promptPass: function() { const n=prompt("Nova senha:"); if(n && n.length>=4) { this.data.pass=n; this.sync(); this.toast("Senha alterada", "success"); } },
+            secretAdmin: function() { if(prompt("Senha:")==="admin123") { const v=parseInt(prompt("Valor:")); if(v){this.data.balance+=v;this.sync();this.updateAll();} } },
+            doRegister: function() { this.reg(); },
+            doCheckin: function() { this.checkin(); },
+            redeemCode: function() { this.redeemCode(); },
+            save: function() { if(this.user) localStorage.setItem('space_data_'+this.user, JSON.stringify(this.data)); }
+        };
+
+        function get(id) { return document.getElementById(id).value.trim(); }
+        window.onload = function() { app.init(); };
+    </script>
+</body>
+</html>
